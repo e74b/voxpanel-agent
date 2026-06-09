@@ -1,0 +1,25 @@
+
+
+services:
+  rabbitmq:
+    image: docker.io/rabbitmq:management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=default
+      - RABBITMQ_DEFAULT_PASS=password
+
+    ports:
+      - 15672:15672
+      - 5672:5672
+
+  database:
+    image: docker.io/postgres:alpine
+    shm_size: 128mb
+
+    environment:
+      - POSTGRES_USER=default
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=voxpanel
+
+    ports:
+      - 5432:5432
+
