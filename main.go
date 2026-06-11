@@ -37,10 +37,11 @@ func main () {
 	logger := rootLogger.Sugar()
 
 	app := AppState{};
-	logger.Info("Reading env vars")
-	setupEnvVars(&app)
 	app.waitGroup = &sync.WaitGroup{}
 	app.logger = logger
+
+	logger.Info("Reading env vars")
+	setupEnvVars(&app)
 
 	logger.Info("Connecting to podman socket")
 	podmanConnection, err := podman.NewConnection(context.Background(), os.Getenv("VP_PODMAN_SOCK"))
