@@ -3,25 +3,43 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/containers/podman/v5/pkg/bindings/containers"
 	"github.com/containers/podman/v5/pkg/bindings/images"
 	"github.com/containers/podman/v5/pkg/specgen"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	nettypes "go.podman.io/common/libnetwork/types"
 )
 
-func handleStartServer(_ ControlMessage, routing Routing, app *AppState) {
+func handleStartServer(message ControlMessage, routing Routing, app *AppState) {
+	uuid := message.Arg["uuid"]
+	path, err := os.Getwd()
+	app.warnOnError(err, "Failed to fetch working directory")
+
+	dataPath := filepath.Join(path, "data", uuid)
+	err = os.MkdirAll(dataPath, os.ModePerm)
+	app.logger.Warnf("%s", err)
+
 	image, err := images.GetImage(*app.podmanConnection, "paper-server", nil)
 	app.warnOnError(err, "Failed getting podman image")
 	spec := specgen.NewSpecGenerator(image.ID, false)
 	spec.Remove = new(false)
-	spec.OverlayVolumes = append(spec.OverlayVolumes, &specgen.OverlayVolume{
+	dataMount := specs.Mount{
+		Source: dataPath,
+		Destination: "/data",
+		Options: []string{"Z"},
+		Type: "bind",
+	}
+	// TODO: Make a better system of loading default config dirs
+	configMount := specs.Mount{
 		Source: "/home/e74b/VoxPanel/containers/Servers/config/",
 		Destination: "/config",
 		Options: []string{"Z"},
-	})
-	// Overlay volume might be the wrong thing to use here... Writes are not synced, NamedVolume ImageVolume
+		Type: "bind",
+	}
+	spec.Mounts = append(spec.Mounts, dataMount, configMount)
 	port, err := getFreePort()
 	app.warnOnError(err, "No free ports found")
 	spec.Labels = map[string]string{
